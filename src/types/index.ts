@@ -39,3 +39,11 @@ export interface UserSettings {
   useMetricSystem: boolean;
   customMetrics: string[];
 }
+
+export interface Reminder {
+  id: string;
+  date: string;
+  message: string;
+  read: boolean;
+  type: 'shot' | 'wellness' | 'custom';
+}

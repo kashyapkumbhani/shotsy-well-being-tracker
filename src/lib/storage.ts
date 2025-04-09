@@ -1,6 +1,15 @@
 
 import { ShotData, WellnessData, UserSettings } from "@/types";
 
+// Storage keys
+export const storageKeys = {
+  SHOTS: "shotsy_shots",
+  WELLNESS: "shotsy_wellness",
+  SETTINGS: "shotsy_settings",
+  REMINDERS: "shotsy_reminders",
+  USE_METRIC: "shotsy_use_metric"
+};
+
 const SHOTS_KEY = "shotsy_shots";
 const WELLNESS_KEY = "shotsy_wellness";
 const SETTINGS_KEY = "shotsy_settings";

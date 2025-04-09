@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { ShotData, WellnessData, Reminder } from "@/types";
-import { storageKeys } from "@/lib/storage";
+import { ShotData, WellnessData, Reminder, UserSettings } from "@/types";
+import { storageKeys, getUserSettings, calculateNextShotDate, calculateStreak } from "@/lib/storage";
 
 interface ShotsyContextType {
   shots: ShotData[];
@@ -20,6 +21,9 @@ interface ShotsyContextType {
   isLoggedIn: boolean;
   setLoggedIn: (status: boolean) => void;
   logout: () => void;
+  settings: UserSettings;
+  nextShotDate: string;
+  streak: number;
 }
 
 const ShotsyContext = createContext<ShotsyContextType | undefined>(undefined);
@@ -34,11 +38,20 @@ export const ShotsyProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // State for tracking reminders
   const [reminders, setReminders] = useState<Reminder[]>([]);
   
+  // State for user settings
+  const [settings, setSettings] = useState<UserSettings>(getUserSettings());
+  
   // State for measurement system preference
   const [useMetricSystem, setUseMetricSystem] = useState(false);
   
   // State for login status
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // Track next shot date
+  const [nextShotDate, setNextShotDate] = useState(calculateNextShotDate());
+  
+  // Track streak
+  const [streak, setStreak] = useState(calculateStreak());
 
   // Load data from localStorage on initial mount
   useEffect(() => {
@@ -65,11 +78,18 @@ export const ShotsyProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // Check login status
     const loggedIn = localStorage.getItem("shotsy_logged_in") === "true";
     setIsLoggedIn(loggedIn);
+    
+    // Update nextShotDate and streak
+    setNextShotDate(calculateNextShotDate());
+    setStreak(calculateStreak());
   }, []);
 
   // Save shots to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(storageKeys.SHOTS, JSON.stringify(shots));
+    // Update nextShotDate and streak when shots change
+    setNextShotDate(calculateNextShotDate());
+    setStreak(calculateStreak());
   }, [shots]);
 
   // Save wellness data to localStorage whenever it changes
@@ -85,6 +105,12 @@ export const ShotsyProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Save metric preference to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(storageKeys.USE_METRIC, JSON.stringify(useMetricSystem));
+    
+    // Update settings when metric preference changes
+    setSettings(prev => ({
+      ...prev,
+      useMetricSystem
+    }));
   }, [useMetricSystem]);
 
   // Add a new shot
@@ -172,7 +198,10 @@ export const ShotsyProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       toggleMetricSystem,
       isLoggedIn,
       setLoggedIn,
-      logout
+      logout,
+      settings,
+      nextShotDate,
+      streak
     }}>
       {children}
     </ShotsyContext.Provider>

@@ -13,6 +13,7 @@ import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import { useEffect, useState } from "react";
+import { ShotsyProvider } from "@/contexts/ShotsyContext";
 
 const queryClient = new QueryClient();
 
@@ -32,32 +33,34 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <Routes>
-            {!isLoggedIn ? (
-              <>
-                <Route path="/login" element={<Login />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </>
-            ) : (
-              <>
-                <Route element={<Layout />}>
-                  <Route path="/" element={<Summary />} />
-                  <Route path="/shots" element={<Shots />} />
-                  <Route path="/results" element={<Results />} />
-                  <Route path="/calendar" element={<Calendar />} />
-                  <Route path="/settings" element={<Settings />} />
-                </Route>
-                <Route path="/login" element={<Navigate to="/" replace />} />
-                <Route path="*" element={<NotFound />} />
-              </>
-            )}
-          </Routes>
-          <Toaster />
-          <Sonner />
-        </TooltipProvider>
-      </BrowserRouter>
+      <ShotsyProvider>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Routes>
+              {!isLoggedIn ? (
+                <>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="*" element={<Navigate to="/login" replace />} />
+                </>
+              ) : (
+                <>
+                  <Route element={<Layout />}>
+                    <Route path="/" element={<Summary />} />
+                    <Route path="/shots" element={<Shots />} />
+                    <Route path="/results" element={<Results />} />
+                    <Route path="/calendar" element={<Calendar />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Route>
+                  <Route path="/login" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<NotFound />} />
+                </>
+              )}
+            </Routes>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
+        </BrowserRouter>
+      </ShotsyProvider>
     </QueryClientProvider>
   );
 };
