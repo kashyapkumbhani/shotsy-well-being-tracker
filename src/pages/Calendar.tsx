@@ -11,6 +11,7 @@ import { ShotData, WellnessData } from "@/types";
 import { formatDate, formatTime } from "@/lib/utils";
 import { isSameDay } from "date-fns";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DayContentProps } from "react-day-picker";
 
 const Calendar: React.FC = () => {
   const { shots, wellnessData } = useShotsy();
@@ -92,10 +93,10 @@ const Calendar: React.FC = () => {
             onSelect={(date) => date && setSelectedDate(date)}
             className="rounded-md border pointer-events-auto"
             components={{
-              DayContent: ({ day }) => (
+              DayContent: ({ date, displayMonth }: DayContentProps) => (
                 <>
-                  {day.day}
-                  {getDayContent(day.date)}
+                  {date.getDate()}
+                  {getDayContent(date)}
                 </>
               ),
             }}
