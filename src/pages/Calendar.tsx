@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { useShotsy } from "@/contexts/ShotsyContext";
 import { Plus, ChevronDown, ChevronUp, Syringe, Weight, Droplet, Apple } from "lucide-react";
@@ -86,11 +86,11 @@ const Calendar: React.FC = () => {
       
       <Card className="mb-6">
         <CardContent className="p-4">
-          <Calendar
+          <CalendarComponent
             mode="single"
             selected={selectedDate}
             onSelect={(date) => date && setSelectedDate(date)}
-            className="rounded-md border"
+            className="rounded-md border pointer-events-auto"
             components={{
               DayContent: ({ day }) => (
                 <>
