@@ -1,204 +1,185 @@
-
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { ShotData, WellnessData, UserSettings } from "@/types";
-import {
-  getShots,
-  getWellnessData,
-  getUserSettings,
-  saveShots,
-  saveWellnessData,
-  saveUserSettings,
-  calculateNextShotDate,
-  calculateStreak,
-  requestNotificationPermission,
-  scheduleNotification,
-} from "@/lib/storage";
-import { generateId } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { ShotData, WellnessData, Reminder } from "@/types";
+import { storageKeys } from "@/lib/storage";
 
 interface ShotsyContextType {
   shots: ShotData[];
-  wellnessData: WellnessData[];
-  settings: UserSettings;
-  streak: number;
-  nextShotDate: string;
-  notificationsPermission: boolean;
-  addShot: (shot: Partial<ShotData>) => void;
-  updateShot: (shot: ShotData) => void;
+  addShot: (shot: Omit<ShotData, "id">) => void;
+  updateShot: (id: string, shot: Partial<ShotData>) => void;
   deleteShot: (id: string) => void;
-  addWellnessData: (data: Partial<WellnessData>) => void;
-  updateWellnessData: (data: WellnessData) => void;
-  updateSettings: (newSettings: Partial<UserSettings>) => void;
-  refreshData: () => void;
+  wellnessData: WellnessData[];
+  addWellnessData: (data: Omit<WellnessData, "id">) => void;
+  updateWellnessData: (id: string, data: Partial<WellnessData>) => void;
+  deleteWellnessData: (id: string) => void;
+  reminders: Reminder[];
+  addReminder: (reminder: Omit<Reminder, "id">) => void;
+  updateReminder: (id: string, reminder: Partial<Reminder>) => void;
+  deleteReminder: (id: string) => void;
+  useMetricSystem: boolean;
+  toggleMetricSystem: () => void;
+  isLoggedIn: boolean;
+  setLoggedIn: (status: boolean) => void;
+  logout: () => void;
 }
 
 const ShotsyContext = createContext<ShotsyContextType | undefined>(undefined);
 
-export const ShotsyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ShotsyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // State for tracking shots
   const [shots, setShots] = useState<ShotData[]>([]);
+  
+  // State for tracking wellness data
   const [wellnessData, setWellnessData] = useState<WellnessData[]>([]);
-  const [settings, setSettings] = useState<UserSettings>(getUserSettings());
-  const [streak, setStreak] = useState<number>(0);
-  const [nextShotDate, setNextShotDate] = useState<string>(calculateNextShotDate());
-  const [notificationsPermission, setNotificationsPermission] = useState<boolean>(false);
-  const { toast } = useToast();
+  
+  // State for tracking reminders
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  
+  // State for measurement system preference
+  const [useMetricSystem, setUseMetricSystem] = useState(false);
+  
+  // State for login status
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Load data from localStorage on component mount
+  // Load data from localStorage on initial mount
   useEffect(() => {
-    refreshData();
-    checkNotificationPermission();
+    const savedShots = localStorage.getItem(storageKeys.SHOTS);
+    if (savedShots) {
+      setShots(JSON.parse(savedShots));
+    }
+
+    const savedWellnessData = localStorage.getItem(storageKeys.WELLNESS);
+    if (savedWellnessData) {
+      setWellnessData(JSON.parse(savedWellnessData));
+    }
+
+    const savedReminders = localStorage.getItem(storageKeys.REMINDERS);
+    if (savedReminders) {
+      setReminders(JSON.parse(savedReminders));
+    }
+
+    const savedMetricPreference = localStorage.getItem(storageKeys.USE_METRIC);
+    if (savedMetricPreference) {
+      setUseMetricSystem(JSON.parse(savedMetricPreference));
+    }
+
+    // Check login status
+    const loggedIn = localStorage.getItem("shotsy_logged_in") === "true";
+    setIsLoggedIn(loggedIn);
   }, []);
 
-  const refreshData = () => {
-    setShots(getShots());
-    setWellnessData(getWellnessData());
-    setSettings(getUserSettings());
-    setStreak(calculateStreak());
-    setNextShotDate(calculateNextShotDate());
-  };
-
-  const checkNotificationPermission = async () => {
-    const hasPermission = await requestNotificationPermission();
-    setNotificationsPermission(hasPermission);
-  };
-
-  const addShot = (shotData: Partial<ShotData>) => {
-    const newShot: ShotData = {
-      id: generateId(),
-      date: new Date().toISOString(),
-      medication: settings.medicationName,
-      dose: settings.defaultDose,
-      location: settings.defaultLocation,
-      notes: "",
-      sideEffects: [],
-      shotNumber: shots.length + 1,
-      taken: true,
-      ...shotData,
-    };
-
-    const updatedShots = [...shots, newShot];
-    saveShots(updatedShots);
-    setShots(updatedShots);
-    setStreak(calculateStreak());
-    setNextShotDate(calculateNextShotDate());
-    
-    toast({
-      title: "Shot logged successfully!",
-      description: "Your GLP-1 shot has been recorded.",
-    });
-  };
-
-  const updateShot = (updatedShot: ShotData) => {
-    const updatedShots = shots.map((shot) =>
-      shot.id === updatedShot.id ? updatedShot : shot
-    );
-    saveShots(updatedShots);
-    setShots(updatedShots);
-    setStreak(calculateStreak());
-    
-    toast({
-      title: "Shot updated",
-      description: "Your shot information has been updated.",
-    });
-  };
-
-  const deleteShot = (id: string) => {
-    const updatedShots = shots.filter((shot) => shot.id !== id);
-    saveShots(updatedShots);
-    setShots(updatedShots);
-    setStreak(calculateStreak());
-    setNextShotDate(calculateNextShotDate());
-    
-    toast({
-      title: "Shot deleted",
-      description: "The shot record has been removed.",
-    });
-  };
-
-  const addWellnessData = (data: Partial<WellnessData>) => {
-    const newData: WellnessData = {
-      id: generateId(),
-      date: new Date().toISOString(),
-      ...data,
-    };
-
-    const updatedWellnessData = [...wellnessData, newData];
-    saveWellnessData(updatedWellnessData);
-    setWellnessData(updatedWellnessData);
-    
-    toast({
-      title: "Wellness data saved",
-      description: "Your health data has been recorded.",
-    });
-  };
-
-  const updateWellnessData = (updatedData: WellnessData) => {
-    const updated = wellnessData.map((data) =>
-      data.id === updatedData.id ? updatedData : data
-    );
-    saveWellnessData(updated);
-    setWellnessData(updated);
-    
-    toast({
-      title: "Wellness data updated",
-      description: "Your health information has been updated.",
-    });
-  };
-
-  const updateSettings = (newSettings: Partial<UserSettings>) => {
-    const updated = { ...settings, ...newSettings };
-    saveUserSettings(updated);
-    setSettings(updated);
-    
-    toast({
-      title: "Settings updated",
-      description: "Your preferences have been saved.",
-    });
-  };
-
-  // Schedule notifications for upcoming shots if enabled
+  // Save shots to localStorage whenever they change
   useEffect(() => {
-    if (settings.reminderSettings.enabled && notificationsPermission) {
-      const nextDate = new Date(nextShotDate);
-      const reminderDate = new Date(nextDate);
-      reminderDate.setDate(reminderDate.getDate() - settings.reminderSettings.daysBefore);
-      
-      // Set the time from settings
-      const [hours, minutes] = settings.reminderSettings.time.split(':').map(Number);
-      reminderDate.setHours(hours, minutes, 0, 0);
-      
-      scheduleNotification(
-        "Shotsy Reminder",
-        settings.reminderSettings.message,
-        reminderDate
-      );
-    }
-  }, [nextShotDate, settings.reminderSettings, notificationsPermission]);
+    localStorage.setItem(storageKeys.SHOTS, JSON.stringify(shots));
+  }, [shots]);
+
+  // Save wellness data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(storageKeys.WELLNESS, JSON.stringify(wellnessData));
+  }, [wellnessData]);
+
+  // Save reminders to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(storageKeys.REMINDERS, JSON.stringify(reminders));
+  }, [reminders]);
+
+  // Save metric preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(storageKeys.USE_METRIC, JSON.stringify(useMetricSystem));
+  }, [useMetricSystem]);
+
+  // Add a new shot
+  const addShot = (shot: Omit<ShotData, "id">) => {
+    const newShot = { ...shot, id: Date.now().toString() };
+    setShots([...shots, newShot]);
+  };
+
+  // Update an existing shot
+  const updateShot = (id: string, updatedShot: Partial<ShotData>) => {
+    setShots(shots.map(shot => shot.id === id ? { ...shot, ...updatedShot } : shot));
+  };
+
+  // Delete a shot
+  const deleteShot = (id: string) => {
+    setShots(shots.filter(shot => shot.id !== id));
+  };
+
+  // Add wellness data
+  const addWellnessData = (data: Omit<WellnessData, "id">) => {
+    const newData = { ...data, id: Date.now().toString() };
+    setWellnessData([...wellnessData, newData]);
+  };
+
+  // Update wellness data
+  const updateWellnessData = (id: string, updatedData: Partial<WellnessData>) => {
+    setWellnessData(wellnessData.map(item => item.id === id ? { ...item, ...updatedData } : item));
+  };
+
+  // Delete wellness data
+  const deleteWellnessData = (id: string) => {
+    setWellnessData(wellnessData.filter(item => item.id !== id));
+  };
+
+  // Add a reminder
+  const addReminder = (reminder: Omit<Reminder, "id">) => {
+    const newReminder = { ...reminder, id: Date.now().toString() };
+    setReminders([...reminders, newReminder]);
+  };
+
+  // Update a reminder
+  const updateReminder = (id: string, updatedReminder: Partial<Reminder>) => {
+    setReminders(reminders.map(reminder => reminder.id === id ? { ...reminder, ...updatedReminder } : reminder));
+  };
+
+  // Delete a reminder
+  const deleteReminder = (id: string) => {
+    setReminders(reminders.filter(reminder => reminder.id !== id));
+  };
+
+  // Toggle between metric and imperial
+  const toggleMetricSystem = () => {
+    setUseMetricSystem(!useMetricSystem);
+  };
+
+  // Set login status
+  const setLoggedIn = (status: boolean) => {
+    setIsLoggedIn(status);
+    localStorage.setItem("shotsy_logged_in", status.toString());
+  };
+
+  // Logout function
+  const logout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem("shotsy_logged_in");
+    localStorage.removeItem("shotsy_user_email");
+    localStorage.removeItem("shotsy_user_name");
+  };
 
   return (
-    <ShotsyContext.Provider
-      value={{
-        shots,
-        wellnessData,
-        settings,
-        streak,
-        nextShotDate,
-        notificationsPermission,
-        addShot,
-        updateShot,
-        deleteShot,
-        addWellnessData,
-        updateWellnessData,
-        updateSettings,
-        refreshData,
-      }}
-    >
+    <ShotsyContext.Provider value={{
+      shots,
+      addShot,
+      updateShot,
+      deleteShot,
+      wellnessData,
+      addWellnessData,
+      updateWellnessData,
+      deleteWellnessData,
+      reminders,
+      addReminder,
+      updateReminder,
+      deleteReminder,
+      useMetricSystem,
+      toggleMetricSystem,
+      isLoggedIn,
+      setLoggedIn,
+      logout
+    }}>
       {children}
     </ShotsyContext.Provider>
   );
 };
 
-export const useShotsy = (): ShotsyContextType => {
+export const useShotsy = () => {
   const context = useContext(ShotsyContext);
   if (context === undefined) {
     throw new Error("useShotsy must be used within a ShotsyProvider");
